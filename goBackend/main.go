@@ -1,7 +1,3 @@
-// =================================================================
-// 檔案路徑: main.go
-// 說明: 註冊新的 API 路由
-// =================================================================
 package main
 
 import (
@@ -13,13 +9,11 @@ import (
 )
 
 func main() {
-	const serialPortName = "COM3" // <--- 請確認這裡仍然是您正確的序列埠名稱
+	const serialPortName = "COM3"
 
 	go services.StartSerialReader(serialPortName)
 
-	// 註冊原本的數據 API
 	http.HandleFunc("/api/sensor-data", controllers.SensorDataHandler)
-	// 註冊新的指令 API
 	http.HandleFunc("/api/command", controllers.CommandHandler)
 
 	log.Println("伺服器已啟動於 http://localhost:8080")
