@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"go.bug.st/serial"
-	"iotDashboard/goBackend/models" // 請再次確認這個 import 路徑與您的 go.mod 完全一致
+	"iotDashboard/goBackend/models"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 		Mu   sync.Mutex
 		Data models.SensorData
 	}
-	// isFanOn 變數現在用來追蹤 LCD 警告的狀態 (true=警告中, false=正常)
+	// isFanOn 變數現在用來追蹤 LCD 警告的狀態
 	isFanOn bool
 	fanControlMutex sync.Mutex
 )
@@ -39,30 +39,25 @@ func SendCommandToArduino(command string) error {
 
 // 檢查溫度並決定是否要觸發 LCD 警告
 func checkTemperatureAndManageWarning(temp float32) {
-	// 鎖定，確保同一時間只有一個執行緒在做決策
 	fanControlMutex.Lock()
-	// 使用 defer 確保函式結束時一定會解鎖
 	defer fanControlMutex.Unlock()
 
 	// 定義溫度的觸發閾值
 	const upperThreshold float32 = 28.0
 	const lowerThreshold float32 = 27.0
 
-	// --- 決策邏輯 ---
 	// 如果溫度高於上限，且目前警告是關閉的
 	if temp > upperThreshold && !isFanOn {
 		log.Println("溫度過高！正在發送「LCD 顯示警告」指令...")
-		// 發送 'W1' 指令來開啟警告
 		err := SendCommandToArduino("W1")
 		if err == nil {
-			isFanOn = true // 指令發送成功後，才更新狀態
+			isFanOn = true
 		}
-	} else if temp < lowerThreshold && isFanOn { // 如果溫度低於下限，且目前警告是開啟的
+	} else if temp < lowerThreshold && isFanOn {
 		log.Println("溫度已降低。正在發送「LCD 清除警告」指令...")
-		// 發送 'W0' 指令來關閉警告
 		err := SendCommandToArduino("W0")
 		if err == nil {
-			isFanOn = false // 指令發送成功後，才更新狀態
+			isFanOn = false
 		}
 	}
 }
