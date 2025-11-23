@@ -155,9 +155,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- ======================================================= -->
-      <!--               ↓↓↓ 關鍵的修復 ↓↓↓                      -->
-      <!-- ======================================================= -->
       <!-- 使用 v-if 確保在 labels 陣列被填充數據後，才渲染圖表容器 -->
       <div v-if="tempChartData.labels.length > 0" class="charts-container">
         <div class="chart-wrapper">
@@ -169,15 +166,11 @@ onMounted(() => {
           <Line :data="humiChartData" :options="chartOptions" />
         </div>
       </div>
-      <!-- ======================================================= -->
-      <!--               ↑↑↑ 關鍵的修復 ↑↑↑                      -->
-      <!-- ======================================================= -->
     </main>
   </div>
 </template>
 
 <style scoped>
-/* 樣式保持不變 */
 #dashboard {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   max-width: 1000px;
