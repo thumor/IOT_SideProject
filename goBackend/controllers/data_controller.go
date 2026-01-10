@@ -2,62 +2,39 @@ package controllers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
-    "iotDashboard/goBackend/models"
-    "iotDashboard/goBackend/services"
+	// 確保路徑與您的 go.mod 一致
+	"iotDashboard/goBackend/services"
 )
 
-// SensorDataHandler 保持不變
-func SensorDataHandler(w http.ResponseWriter, r *http.Request) {
-	services.GlobalDataStore.Mu.Lock()
-	latestData := services.GlobalDataStore.Data
-	services.GlobalDataStore.Mu.Unlock()
-
-	w.Header().Set("Content-Type", "application/json")
-    w.Header().Set("Access-Control-Allow-Origin", "*")
-	// 允許 POST 方法和 Content-Type header，為前端做準備
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	json.NewEncoder(w).Encode(latestData)
-}
-
-// CommandHandler 是新的處理器，用來接收控制指令
-func CommandHandler(w http.ResponseWriter, r *http.Request) {
-	// 設定 CORS headers
+// TelemetryHandler 處理來自前端或 HMI 的數據請求
+func TelemetryHandler(w http.ResponseWriter, r *http.Request) {
+	// 處理跨域請求
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Content-Type", "application/json")
 
-	// 瀏覽器在發送 POST 請求前，會先發送一個 OPTIONS "預檢"請求，我們直接回 200 OK
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	// 限制只能用 POST 方法發送指令
 	if r.Method != http.MethodPost {
-		http.Error(w, "僅允許 POST 方法", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var cmd models.Command
-	// 解碼請求 body 中的 JSON 到 cmd 變數
-	err := json.NewDecoder(r.Body).Decode(&cmd)
-	if err != nil {
-		http.Error(w, "無效的請求 body", http.StatusBadRequest)
+	var input struct {
+		Temp float32 `json:"motorTemperature"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid Payload", http.StatusBadRequest)
 		return
 	}
 
-	// 呼叫 service 層的函式來發送指令
-	err = services.SendCommandToArduino(cmd.Command)
-	if err != nil {
-		http.Error(w, "發送指令失敗", http.StatusInternalServerError)
-		return
-	}
+	// 呼叫 Gemini AI 推理邏輯
+	instruction := services.GetAIInstruction(input.Temp)
+	
+	log.Printf("[SYSTEM] 遙測數據接收: %.1f C -> AI 決策指令: %s", input.Temp, instruction)
 
-	// 回應成功訊息
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("指令已成功發送"))
+	// 回傳 AI 的操作指令
+	json.NewEncoder(w).Encode(map[string]string{
+		"operatorInstruction": instruction,
+	})
 }
